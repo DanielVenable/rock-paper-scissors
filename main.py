@@ -46,10 +46,10 @@ class Player():
             keras.layers.MaxPooling1D(pool_size=2),
             keras.layers.Flatten(),
             keras.layers.Dense(64, activation='relu'),
-            keras.layers.Dense(3, activation='softmax')
+            keras.layers.Dense(3, activation='sigmoid')
         ])
 
-        self.model.compile(optimizer=keras.optimizers.Adam(), loss='categorical_crossentropy')
+        self.model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.01), loss='categorical_crossentropy')
 
     def next(self, user_action):
         if len(self.history) >= self.memory_length:
@@ -58,8 +58,7 @@ class Player():
             # Make a prediction
             prediction, = self.model(buf, training=False)
 
-            # Sample from the prediction and choose whatever beats it
-            computer_action = (np.random.choice(3, p=np.array(prediction)) + 2) % 3
+            computer_action = self.decide(prediction)
 
             # Learn from the new information
             self.model.train_on_batch(buf, result_tensors[user_action])
@@ -82,6 +81,11 @@ class Player():
 
         print(f'Scores: You: {self.scores[0]}, Me: {self.scores[1]}\n')
 
+    def decide(self, prediction):
+        paper, rock, scissors = prediction
+        probabilities = [rock - scissors, scissors - paper, paper - rock]
+        return np.argmax(probabilities)
+
 labels = ['Paper', 'Rock', 'Scissors']
 
 PAPER = 0
@@ -102,7 +106,7 @@ def get_user_action():
         prediction, = predict(image)
         if prediction[PAPER] > 0.8:
             return PAPER
-        if prediction[ROCK] > 0.9:
+        if prediction[ROCK] > 0.8:
             return ROCK
         if prediction[SCISSORS] > 0.8:
             return SCISSORS
